@@ -146,9 +146,9 @@ Department scores are updated continuously based on actions:
 
 ### 🖥️ 2. Frontend Client Setup
 
-1. Navigate to the root directory:
+1. Navigate to the frontend directory:
    ```bash
-   cd ..
+   cd frontend
    ```
 
 2. Install dependencies:
@@ -165,10 +165,14 @@ Department scores are updated continuously based on actions:
 
 ---
 
-## 🔑 Demo Account Credentials
-For testing purposes, sign in using the pre-seeded admin account:
-- **Email**: `admin@ecosphere.com`
-- **Password**: `password123`
+## 🔑 Seeded Demo Account Credentials
+For testing purposes, sign in using these accounts (password is `password123` for all):
+- **Admin**: `admin@ecosphere.com`
+- **Manager (Logistics)**: `neha@ecosphere.com`
+- **Manager (Manufacturing)**: `vikram@ecosphere.com`
+- **Manager (Corporate)**: `amit@ecosphere.com`
+- **Employee (Logistics)**: `riyer@ecosphere.com`
+- **Employee (Corporate)**: `amehta@ecosphere.com`
 
 ---
 
@@ -186,22 +190,20 @@ ecoshpere_management/
 │   │   └── seed.ts           # Seeding routines
 │   ├── package.json
 │   └── tsconfig.json
-├── src/                      # Next.js Frontend Client
-│   ├── app/                  # Next.js App Router Pages
-│   │   ├── dashboard/        # Dashboard layout, submodules, and reports pages
-│   │   ├── globals.css       # Design System CSS tokens & light/dark mode styles
-│   │   └── page.tsx          # Login & Signup Landing screen
-│   ├── components/           # Sidebar & persistent elements
-│   └── lib/                  # Shared helpers
-├── package.json
-├── next.config.ts
-└── tsconfig.json
+├── frontend/                 # Next.js Frontend Client
+│   ├── src/                  # App components & layout
+│   │   ├── app/              # App Router pages (Dashboard, Gamification, Reports, etc.)
+│   │   └── components/       # UI elements (Sidebar, theme toggle)
+│   ├── public/               # Static assets
+│   ├── package.json
+│   ├── next.config.ts
+│   └── tsconfig.json
 ```
 
 ---
 
 ## 🎖️ Hackathon Developer Command Reference
 Below are shortcuts configured for rapid testing:
-- `npm run build`: Compiles Next.js frontend, performing strict type checks.
-- `cd backend && npm run build`: Compiles server-side typescript configurations into target executable assets.
+- `cd frontend && npm run build`: Compiles Next.js frontend, performing strict type checks.
+- `cd backend && npm run build`: Compiles server-side typescript configurations.
 - `cd backend && npx prisma studio`: Opens the visual SQLite browser to manually verify row operations.
