@@ -566,14 +566,14 @@ app.post('/api/challenge-participations/complete', requireAuth, async (req: Auth
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    if (cp.challenge.evidenceRequired && !proofFileName) {
-      return res.status(400).json({ error: 'Proof of completion is required for this challenge' });
+    if (!proofFileName || proofFileName.trim() === '') {
+      return res.status(400).json({ error: 'Proof of completion is required for all challenges' });
     }
 
     const updated = await prisma.challengeParticipation.update({
       where: { id: cp.id },
       data: {
-        proofFileName: proofFileName || 'Self-Attested',
+        proofFileName: proofFileName,
         progressPct: 100,
         approvalStatus: 'Pending',
       }
@@ -596,7 +596,7 @@ app.patch('/api/challenge-participations', async (req: Request, res: Response) =
 
   const evidenceConfig = await prisma.eSGConfig.findUnique({ where: { key: 'require_evidence' } });
   if (evidenceConfig?.value === 'true' && approvalStatus === 'Approved') {
-    if (participation.challenge.evidenceRequired && !participation.proofFileName) {
+    if (!participation.proofFileName) {
       return res.status(400).json({ error: 'Evidence required but not provided' });
     }
   }
@@ -610,7 +610,10 @@ app.patch('/api/challenge-participations', async (req: Request, res: Response) =
   if (approvalStatus === 'Approved') {
     await prisma.user.update({
       where: { id: participation.employeeId },
-      data: { xpTotal: { increment: xpAwarded } },
+      data: { 
+        xpTotal: { increment: xpAwarded },
+        pointsBalance: { increment: xpAwarded }
+      },
     });
     await notifyParticipationApproved(participation.employeeId, participation.challenge.title, xpAwarded);
     await checkAndAwardBadges(participation.employeeId);
@@ -706,18 +709,31 @@ app.get('/api/audits', async (req: Request, res: Response) => {
 });
 
 app.post('/api/audits', requireManager, async (req: AuthenticatedRequest, res: Response) => {
-  const data = req.body;
-  const audit = await prisma.audit.create({
-    data: {
-      title: data.title,
-      departmentId: parseInt(data.departmentId),
-      auditorId: parseInt(data.auditorId),
-      date: new Date(data.date),
-      findings: data.findings || '',
-      status: data.status || 'UnderReview',
-    },
-  });
-  return res.status(201).json(audit);
+  try {
+    const data = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const reqDeptId = parseInt(data.departmentId);
+    if (user.role === 'Manager' && user.departmentId !== reqDeptId) {
+      return res.status(403).json({ error: 'Managers can only create audits for their own department.' });
+    }
+
+    const audit = await prisma.audit.create({
+      data: {
+        title: data.title,
+        departmentId: reqDeptId,
+        auditorId: parseInt(data.auditorId),
+        date: new Date(data.date),
+        findings: data.findings || '',
+        status: data.status || 'UnderReview',
+      },
+    });
+    return res.status(201).json(audit);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Compliance Endpoints ──
@@ -735,33 +751,61 @@ app.get('/api/compliance-issues', async (req: Request, res: Response) => {
 });
 
 app.post('/api/compliance-issues', requireManager, async (req: AuthenticatedRequest, res: Response) => {
-  const data = req.body;
-  if (!data.ownerId) return res.status(400).json({ error: 'Owner is required' });
-  if (!data.dueDate) return res.status(400).json({ error: 'Due date is required' });
-  if (!data.title) return res.status(400).json({ error: 'Title is required' });
+  try {
+    const data = req.body;
+    if (!data.ownerId) return res.status(400).json({ error: 'Owner is required' });
+    if (!data.dueDate) return res.status(400).json({ error: 'Due date is required' });
+    if (!data.title) return res.status(400).json({ error: 'Title is required' });
 
-  const issue = await prisma.complianceIssue.create({
-    data: {
-      title: data.title,
-      auditId: data.auditId ? parseInt(data.auditId) : null,
-      severity: data.severity || 'Medium',
-      departmentId: parseInt(data.departmentId),
-      ownerId: parseInt(data.ownerId),
-      dueDate: new Date(data.dueDate),
-      status: 'Open',
-    },
-  });
-  await notifyComplianceIssue(issue.title, issue.ownerId);
-  return res.status(201).json(issue);
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const reqDeptId = parseInt(data.departmentId);
+    if (user.role === 'Manager' && user.departmentId !== reqDeptId) {
+      return res.status(403).json({ error: 'Managers can only create compliance issues for their own department.' });
+    }
+
+    const issue = await prisma.complianceIssue.create({
+      data: {
+        title: data.title,
+        auditId: data.auditId ? parseInt(data.auditId) : null,
+        severity: data.severity || 'Medium',
+        departmentId: reqDeptId,
+        ownerId: parseInt(data.ownerId),
+        dueDate: new Date(data.dueDate),
+        status: 'Open',
+      },
+    });
+    await notifyComplianceIssue(issue.title, issue.ownerId);
+    return res.status(201).json(issue);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.patch('/api/compliance-issues', async (req: Request, res: Response) => {
-  const { id, status } = req.body;
-  const updated = await prisma.complianceIssue.update({
-    where: { id: parseInt(id) },
-    data: { status },
-  });
-  return res.json(updated);
+app.patch('/api/compliance-issues', requireManager, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id, status } = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const issue = await prisma.complianceIssue.findUnique({ where: { id: parseInt(id) } });
+    if (!issue) return res.status(404).json({ error: 'Compliance issue not found' });
+
+    if (user.role === 'Manager' && user.departmentId !== issue.departmentId) {
+      return res.status(403).json({ error: 'Managers can only update compliance issues for their own department.' });
+    }
+
+    const updated = await prisma.complianceIssue.update({
+      where: { id: parseInt(id) },
+      data: { status },
+    });
+    return res.json(updated);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Policies Endpoints ──
@@ -827,39 +871,83 @@ app.get('/api/environmental-goals', async (req: Request, res: Response) => {
   return res.json(goals);
 });
 
-app.post('/api/environmental-goals', async (req: Request, res: Response) => {
-  const data = req.body;
-  const goal = await prisma.environmentalGoal.create({
-    data: {
-      name: data.name,
-      departmentId: parseInt(data.departmentId),
-      targetCO2: parseFloat(data.targetCO2),
-      currentCO2: parseFloat(data.currentCO2) || 0,
-      deadline: new Date(data.deadline),
-      status: data.status || 'Active',
-    },
-  });
-  return res.status(201).json(goal);
+app.post('/api/environmental-goals', requireManager, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const reqDeptId = parseInt(data.departmentId);
+    if (user.role === 'Manager' && user.departmentId !== reqDeptId) {
+      return res.status(403).json({ error: 'Managers can only create goals for their own department.' });
+    }
+
+    const goal = await prisma.environmentalGoal.create({
+      data: {
+        name: data.name,
+        departmentId: reqDeptId,
+        targetCO2: parseFloat(data.targetCO2),
+        currentCO2: parseFloat(data.currentCO2) || 0,
+        deadline: new Date(data.deadline),
+        status: data.status || 'Active',
+      },
+    });
+    return res.status(201).json(goal);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.patch('/api/environmental-goals', async (req: Request, res: Response) => {
-  const data = req.body;
-  const updated = await prisma.environmentalGoal.update({
-    where: { id: parseInt(data.id) },
-    data: {
-      ...(data.name && { name: data.name }),
-      ...(data.currentCO2 !== undefined && { currentCO2: parseFloat(data.currentCO2) }),
-      ...(data.status && { status: data.status }),
-    },
-  });
-  return res.json(updated);
+app.patch('/api/environmental-goals', requireManager, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const goal = await prisma.environmentalGoal.findUnique({ where: { id: parseInt(data.id) } });
+    if (!goal) return res.status(404).json({ error: 'Goal not found' });
+
+    if (user.role === 'Manager' && user.departmentId !== goal.departmentId) {
+      return res.status(403).json({ error: 'Managers can only update goals for their own department.' });
+    }
+
+    const updated = await prisma.environmentalGoal.update({
+      where: { id: parseInt(data.id) },
+      data: {
+        ...(data.name && { name: data.name }),
+        ...(data.currentCO2 !== undefined && { currentCO2: parseFloat(data.currentCO2) }),
+        ...(data.status && { status: data.status }),
+      },
+    });
+    return res.json(updated);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
-app.delete('/api/environmental-goals', async (req: Request, res: Response) => {
-  const id = req.query.id as string;
-  if (!id) return res.status(400).json({ error: 'ID required' });
-  await prisma.environmentalGoal.delete({ where: { id: parseInt(id) } });
-  return res.json({ success: true });
+app.delete('/api/environmental-goals', requireManager, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const id = req.query.id as string;
+    if (!id) return res.status(400).json({ error: 'ID required' });
+
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
+
+    const goal = await prisma.environmentalGoal.findUnique({ where: { id: parseInt(id) } });
+    if (!goal) return res.status(404).json({ error: 'Goal not found' });
+
+    if (user.role === 'Manager' && user.departmentId !== goal.departmentId) {
+      return res.status(403).json({ error: 'Managers can only delete goals for their own department.' });
+    }
+
+    await prisma.environmentalGoal.delete({ where: { id: parseInt(id) } });
+    return res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Carbon Transactions Endpoints ──
@@ -871,30 +959,43 @@ app.get('/api/carbon-transactions', async (req: Request, res: Response) => {
   return res.json(transactions);
 });
 
-app.post('/api/carbon-transactions', async (req: Request, res: Response) => {
-  const data = req.body;
-  const emissionFactor = await prisma.emissionFactor.findUnique({
-    where: { id: parseInt(data.emissionFactorId) },
-  });
-  if (!emissionFactor) return res.status(400).json({ error: 'Invalid emission factor' });
+app.post('/api/carbon-transactions', requireManager, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = req.body;
+    const user = await prisma.user.findUnique({ where: { id: req.user!.userId } });
+    if (!user) return res.status(401).json({ error: 'User not found' });
 
-  const autoCalc = await prisma.eSGConfig.findUnique({ where: { key: 'auto_emission_calculation' } });
-  const quantity = parseFloat(data.quantity);
-  const calculatedEmissions = autoCalc?.value === 'true'
-    ? quantity * emissionFactor.factorValue
-    : parseFloat(data.calculatedEmissions) || 0;
+    const reqDeptId = parseInt(data.departmentId);
+    if (user.role === 'Manager' && user.departmentId !== reqDeptId) {
+      return res.status(403).json({ error: 'Managers can only log carbon transactions for their own department.' });
+    }
 
-  const transaction = await prisma.carbonTransaction.create({
-    data: {
-      departmentId: parseInt(data.departmentId),
-      sourceType: data.sourceType,
-      quantity,
-      emissionFactorId: emissionFactor.id,
-      calculatedEmissions,
-      transactionDate: data.transactionDate ? new Date(data.transactionDate) : new Date(),
-    },
-  });
-  return res.status(201).json(transaction);
+    const emissionFactor = await prisma.emissionFactor.findUnique({
+      where: { id: parseInt(data.emissionFactorId) },
+    });
+    if (!emissionFactor) return res.status(400).json({ error: 'Invalid emission factor' });
+
+    const autoCalc = await prisma.eSGConfig.findUnique({ where: { key: 'auto_emission_calculation' } });
+    const quantity = parseFloat(data.quantity);
+    const calculatedEmissions = autoCalc?.value === 'true'
+      ? quantity * emissionFactor.factorValue
+      : parseFloat(data.calculatedEmissions) || 0;
+
+    const transaction = await prisma.carbonTransaction.create({
+      data: {
+        departmentId: reqDeptId,
+        sourceType: data.sourceType,
+        quantity,
+        emissionFactorId: emissionFactor.id,
+        calculatedEmissions,
+        transactionDate: data.transactionDate ? new Date(data.transactionDate) : new Date(),
+      },
+    });
+    return res.status(201).json(transaction);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // ── Emission Factors ──

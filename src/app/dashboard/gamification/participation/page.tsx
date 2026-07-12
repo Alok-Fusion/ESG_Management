@@ -10,7 +10,7 @@ export default function ChallengeParticipationPage() {
 
   useEffect(() => {
     fetch('/api/challenge-participations').then(r => r.json()).then(setItems);
-    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user?.role) setUserRole(d.user.role); });
   }, []);
 
   const handleAction = async (id: number, status: string) => {

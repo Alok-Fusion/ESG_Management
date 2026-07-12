@@ -10,11 +10,20 @@ export default function GoalsPage() {
   const [depts, setDepts] = useState<{id:number;name:string}[]>([]);
   const [form, setForm] = useState({ name: '', departmentId: '', targetCO2: '', currentCO2: '0', deadline: '', status: 'Active' });
   const [userRole, setUserRole] = useState<string>('Employee');
+  const [userDeptId, setUserDeptId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/environmental-goals').then(r => r.json()).then(setGoals);
     fetch('/api/departments').then(r => r.json()).then(setDepts);
-    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      if (d.user) {
+        setUserRole(d.user.role);
+        if (d.user.departmentId) {
+          setUserDeptId(d.user.departmentId);
+          setForm(f => ({ ...f, departmentId: String(d.user.departmentId) }));
+        }
+      }
+    });
   }, []);
 
   const filtered = goals.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
@@ -102,7 +111,24 @@ export default function GoalsPage() {
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h2>New Environmental Goal</h2>
             <div className="form-group"><label className="form-label">Name</label><input className="form-input" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-            <div className="form-group"><label className="form-label">Department</label><select className="form-select" value={form.departmentId} onChange={e => setForm({...form, departmentId: e.target.value})}><option value="">Select...</option>{depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}</select></div>
+            <div className="form-group">
+              <label className="form-label">Department</label>
+              <select
+                className="form-select"
+                value={form.departmentId}
+                onChange={e => setForm({...form, departmentId: e.target.value})}
+                disabled={userRole === 'Manager'}
+              >
+                {userRole === 'Manager' ? (
+                  depts.filter(d => d.id === userDeptId).map(d => <option key={d.id} value={d.id}>{d.name}</option>)
+                ) : (
+                  <>
+                    <option value="">Select...</option>
+                    {depts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                  </>
+                )}
+              </select>
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
               <div className="form-group"><label className="form-label">Target CO₂ (tons)</label><input type="number" className="form-input" value={form.targetCO2} onChange={e => setForm({...form, targetCO2: e.target.value})} /></div>
               <div className="form-group"><label className="form-label">Current CO₂ (tons)</label><input type="number" className="form-input" value={form.currentCO2} onChange={e => setForm({...form, currentCO2: e.target.value})} /></div>

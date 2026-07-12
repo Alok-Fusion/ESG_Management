@@ -11,7 +11,7 @@ export default function PoliciesPage() {
 
   useEffect(() => {
     fetch('/api/policies').then(r => r.json()).then(setPolicies);
-    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user?.role) setUserRole(d.user.role); });
   }, []);
 
   const handleCreate = async () => {

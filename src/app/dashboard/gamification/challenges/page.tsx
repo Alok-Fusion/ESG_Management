@@ -14,7 +14,7 @@ export default function ChallengesPage() {
 
   useEffect(() => {
     fetch('/api/challenges').then(r => r.json()).then(setChallenges);
-    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.user?.role) setUserRole(d.user.role); });
   }, []);
 
   const filtered = filter === 'All' ? challenges : challenges.filter(c => c.status === filter);
