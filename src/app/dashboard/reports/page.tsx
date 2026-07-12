@@ -124,6 +124,118 @@ export default function ReportsPage() {
     document.body.removeChild(link);
   };
 
+  const exportPDF = () => {
+    if (!reportData) return;
+    const printContent = document.getElementById('report-print-area')?.innerHTML || '';
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to download PDF.');
+      return;
+    }
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>${reportType?.toUpperCase()} Report - EcoSphere</title>
+          <style>
+            body {
+              font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+              padding: 40px;
+              color: #1e293b;
+              line-height: 1.5;
+            }
+            h3, h4 {
+              color: #0f172a;
+              margin-top: 0;
+            }
+            h3 {
+              border-bottom: 2px solid #e2e8f0;
+              padding-bottom: 12px;
+              text-transform: uppercase;
+              font-size: 22px;
+            }
+            h4 {
+              margin-top: 24px;
+              font-size: 16px;
+              border-bottom: 1px solid #e2e8f0;
+              padding-bottom: 6px;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              margin: 12px 0 24px;
+            }
+            th, td {
+              border: 1px solid #e2e8f0;
+              padding: 10px 12px;
+              text-align: left;
+              font-size: 13px;
+            }
+            th {
+              background-color: #f8fafc;
+              font-weight: 600;
+              color: #475569;
+            }
+            .badge {
+              display: inline-block;
+              padding: 2px 8px;
+              border-radius: 4px;
+              font-size: 11px;
+              font-weight: 600;
+              text-transform: capitalize;
+            }
+            .badge-green { background-color: #dcfce7; color: #15803d; }
+            .badge-blue { background-color: #dbeafe; color: #1d4ed8; }
+            .badge-red { background-color: #fee2e2; color: #b91c1c; }
+            .badge-yellow { background-color: #fef9c3; color: #a16207; }
+            .badge-gray { background-color: #f1f5f9; color: #475569; }
+            .badge-orange { background-color: #ffedd5; color: #c2410c; }
+            .progress-bar {
+              width: 100px;
+              height: 8px;
+              background-color: #e2e8f0;
+              border-radius: 4px;
+              display: inline-block;
+              vertical-align: middle;
+            }
+            .progress-fill {
+              height: 100%;
+              border-radius: 4px;
+              background-color: #3b82f6;
+            }
+            .print-footer {
+              margin-top: 50px;
+              font-size: 11px;
+              color: #94a3b8;
+              text-align: center;
+              border-top: 1px dashed #cbd5e1;
+              padding-top: 12px;
+            }
+          </style>
+        </head>
+        <body>
+          <h3>${reportType?.toUpperCase()} Report - EcoSphere ESG Platform</h3>
+          <p style="font-size: 12px; color: #64748b; margin-top: -8px; margin-bottom: 24px;">
+            Generated on: ${new Date().toLocaleString()} | Scope: Corporate ESG Metrics
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 24px;">
+            ${printContent}
+          </div>
+          <div class="print-footer">
+            EcoSphere ESG Management System &copy; ${new Date().getFullYear()}. All Rights Reserved.
+          </div>
+          <script>
+            window.onload = function() {
+              window.print();
+              setTimeout(function() { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   return (
     <div>
       <div className="page-header">
@@ -315,7 +427,7 @@ export default function ReportsPage() {
               <button className="btn btn-secondary btn-sm" onClick={exportCSV}>
                 Export: CSV
               </button>
-              <button className="btn btn-secondary btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>
+              <button className="btn btn-secondary btn-sm" onClick={exportPDF}>
                 Export: PDF
               </button>
               <button className="btn btn-secondary btn-sm" style={{ opacity: 0.5, cursor: 'not-allowed' }} disabled>
@@ -324,9 +436,10 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          {/* Environmental Report View */}
-          {reportType === 'environmental' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          <div id="report-print-area">
+            {/* Environmental Report View */}
+            {reportType === 'environmental' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div>
                 <h4 style={{ margin: '0 0 10px 0', color: 'var(--accent-green)' }}>Goals</h4>
                 <table className="data-table">
@@ -593,6 +706,7 @@ export default function ReportsPage() {
               </div>
             </div>
           )}
+          </div>
         </div>
       )}
     </div>
