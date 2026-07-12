@@ -2,66 +2,128 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
+import {
+  LayoutDashboard,
+  UserCircle,
+  Factory,
+  PackageSearch,
+  ArrowLeftRight,
+  Target,
+  HeartHandshake,
+  Users,
+  PieChart,
+  ScrollText,
+  ClipboardCheck,
+  ShieldCheck,
+  AlertTriangle,
+  Swords,
+  UsersRound,
+  Award,
+  Gift,
+  Trophy,
+  BarChart3,
+  Settings,
+  Sun,
+  Moon,
+  LogOut,
+  Leaf,
+  ChevronRight,
+  ChevronDown,
+} from 'lucide-react';
+
+const ICON_SIZE = 16;
+
+const iconMap: Record<string, ReactNode> = {
+  'Dashboard':              <LayoutDashboard size={ICON_SIZE} />,
+  'User Profile':           <UserCircle size={ICON_SIZE} />,
+  'Emission Factors':       <Factory size={ICON_SIZE} />,
+  'Product ESG Profiles':   <PackageSearch size={ICON_SIZE} />,
+  'Carbon Transactions':    <ArrowLeftRight size={ICON_SIZE} />,
+  'Environmental Goals':    <Target size={ICON_SIZE} />,
+  'CSR Activities':         <HeartHandshake size={ICON_SIZE} />,
+  'Employee Participation': <Users size={ICON_SIZE} />,
+  'Diversity Dashboard':    <PieChart size={ICON_SIZE} />,
+  'Policies':               <ScrollText size={ICON_SIZE} />,
+  'Policy Acknowledgements':<ClipboardCheck size={ICON_SIZE} />,
+  'Audits':                 <ShieldCheck size={ICON_SIZE} />,
+  'Compliance Issues':      <AlertTriangle size={ICON_SIZE} />,
+  'Challenges':             <Swords size={ICON_SIZE} />,
+  'Challenge Participation':<UsersRound size={ICON_SIZE} />,
+  'Badges':                 <Award size={ICON_SIZE} />,
+  'Rewards':                <Gift size={ICON_SIZE} />,
+  'Leaderboard':            <Trophy size={ICON_SIZE} />,
+  'Reports':                <BarChart3 size={ICON_SIZE} />,
+  'Settings':               <Settings size={ICON_SIZE} />,
+};
+
+const sectionIconMap: Record<string, ReactNode> = {
+  'Environmental': <Leaf size={14} />,
+  'Social':        <HeartHandshake size={14} />,
+  'Governance':    <ShieldCheck size={14} />,
+  'Gamification':  <Trophy size={14} />,
+  'Analytics':     <BarChart3 size={14} />,
+  'System':        <Settings size={14} />,
+};
 
 const navSections = [
   {
     title: null,
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '', module: 'dashboard' },
-      { label: 'User Profile', href: '/dashboard/profile', icon: '', module: 'profile' },
+      { label: 'Dashboard', href: '/dashboard', module: 'dashboard' },
+      { label: 'User Profile', href: '/dashboard/profile', module: 'profile' },
     ],
   },
   {
     title: 'Environmental',
     module: 'environmental',
     items: [
-      { label: 'Emission Factors', href: '/dashboard/environmental/emission-factors', icon: '', module: 'environmental' },
-      { label: 'Product ESG Profiles', href: '/dashboard/environmental/product-profiles', icon: '', module: 'environmental' },
-      { label: 'Carbon Transactions', href: '/dashboard/environmental/carbon-transactions', icon: '', module: 'environmental' },
-      { label: 'Environmental Goals', href: '/dashboard/environmental/goals', icon: '', module: 'environmental' },
+      { label: 'Emission Factors', href: '/dashboard/environmental/emission-factors', module: 'environmental' },
+      { label: 'Product ESG Profiles', href: '/dashboard/environmental/product-profiles', module: 'environmental' },
+      { label: 'Carbon Transactions', href: '/dashboard/environmental/carbon-transactions', module: 'environmental' },
+      { label: 'Environmental Goals', href: '/dashboard/environmental/goals', module: 'environmental' },
     ],
   },
   {
     title: 'Social',
     module: 'social',
     items: [
-      { label: 'CSR Activities', href: '/dashboard/social/csr-activities', icon: '', module: 'social' },
-      { label: 'Employee Participation', href: '/dashboard/social/participation', icon: '', module: 'social' },
-      { label: 'Diversity Dashboard', href: '/dashboard/social/diversity', icon: '', module: 'social' },
+      { label: 'CSR Activities', href: '/dashboard/social/csr-activities', module: 'social' },
+      { label: 'Employee Participation', href: '/dashboard/social/participation', module: 'social' },
+      { label: 'Diversity Dashboard', href: '/dashboard/social/diversity', module: 'social' },
     ],
   },
   {
     title: 'Governance',
     module: 'governance',
     items: [
-      { label: 'Policies', href: '/dashboard/governance/policies', icon: '', module: 'governance' },
-      { label: 'Policy Acknowledgements', href: '/dashboard/governance/acknowledgements', icon: '', module: 'governance' },
-      { label: 'Audits', href: '/dashboard/governance/audits', icon: '', module: 'governance' },
-      { label: 'Compliance Issues', href: '/dashboard/governance/compliance', icon: '', module: 'governance' },
+      { label: 'Policies', href: '/dashboard/governance/policies', module: 'governance' },
+      { label: 'Policy Acknowledgements', href: '/dashboard/governance/acknowledgements', module: 'governance' },
+      { label: 'Audits', href: '/dashboard/governance/audits', module: 'governance' },
+      { label: 'Compliance Issues', href: '/dashboard/governance/compliance', module: 'governance' },
     ],
   },
   {
     title: 'Gamification',
     module: 'gamification',
     items: [
-      { label: 'Challenges', href: '/dashboard/gamification/challenges', icon: '', module: 'gamification' },
-      { label: 'Challenge Participation', href: '/dashboard/gamification/participation', icon: '', module: 'gamification' },
-      { label: 'Badges', href: '/dashboard/gamification/badges', icon: '', module: 'gamification' },
-      { label: 'Rewards', href: '/dashboard/gamification/rewards', icon: '', module: 'gamification' },
-      { label: 'Leaderboard', href: '/dashboard/gamification/leaderboard', icon: '', module: 'gamification' },
+      { label: 'Challenges', href: '/dashboard/gamification/challenges', module: 'gamification' },
+      { label: 'Challenge Participation', href: '/dashboard/gamification/participation', module: 'gamification' },
+      { label: 'Badges', href: '/dashboard/gamification/badges', module: 'gamification' },
+      { label: 'Rewards', href: '/dashboard/gamification/rewards', module: 'gamification' },
+      { label: 'Leaderboard', href: '/dashboard/gamification/leaderboard', module: 'gamification' },
     ],
   },
   {
     title: 'Analytics',
     items: [
-      { label: 'Reports', href: '/dashboard/reports', icon: '', module: 'reports' },
+      { label: 'Reports', href: '/dashboard/reports', module: 'reports' },
     ],
   },
   {
     title: 'System',
     items: [
-      { label: 'Settings', href: '/dashboard/settings', icon: '', module: 'settings' },
+      { label: 'Settings', href: '/dashboard/settings', module: 'settings' },
     ],
   },
 ];
@@ -78,7 +140,6 @@ export default function Sidebar() {
       if (d.user) setUser(d.user);
     }).catch(() => {});
 
-    // Check saved theme
     const savedTheme = localStorage.getItem('theme') as 'dark' | 'light';
     if (savedTheme) {
       setTheme(savedTheme);
@@ -105,6 +166,7 @@ export default function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sidebar-logo">
+        <Leaf size={20} style={{ color: 'var(--accent-green)' }} />
         <span>EcoSphere</span>
       </div>
 
@@ -117,8 +179,14 @@ export default function Sidebar() {
                 onClick={() => toggleSection(section.title!)}
                 style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
               >
-                {section.title}
-                <span style={{ fontSize: '10px' }}>{collapsed[section.title!] ? '▸' : '▾'}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {sectionIconMap[section.title] || null}
+                  {section.title}
+                </span>
+                {collapsed[section.title!]
+                  ? <ChevronRight size={12} />
+                  : <ChevronDown size={12} />
+                }
               </div>
             )}
             {!collapsed[section.title || ''] && section.items.map((item) => {
@@ -131,7 +199,9 @@ export default function Sidebar() {
                   className={`sidebar-link ${section.title ? 'sidebar-sub' : ''} ${isActive ? 'active' : ''}`}
                   data-module={item.module}
                 >
-                  <span style={{ fontSize: '15px' }}>{item.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', opacity: 0.85 }}>
+                    {iconMap[item.label] || <LayoutDashboard size={ICON_SIZE} />}
+                  </span>
                   {item.label}
                 </Link>
               );
@@ -177,12 +247,13 @@ export default function Sidebar() {
             border: 'none',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontSize: '16px',
             padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
           }}
           title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
         </button>
         <button
           onClick={handleLogout}
@@ -191,12 +262,13 @@ export default function Sidebar() {
             border: 'none',
             color: 'var(--text-muted)',
             cursor: 'pointer',
-            fontSize: '16px',
             padding: '4px',
+            display: 'flex',
+            alignItems: 'center',
           }}
           title="Sign out"
         >
-          ↪
+          <LogOut size={16} />
         </button>
       </div>
     </nav>
