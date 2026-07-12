@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Activity { id: number; title: string; icon: string; description: string; joinCount: number; evidenceRequired: boolean; status: string; category?: { name: string } }
 
@@ -45,11 +46,13 @@ export default function CSRActivitiesPage() {
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.6 }}>{a.description}</p>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-              <span className="badge badge-blue">👥 {a.joinCount} joined</span>
-              {a.evidenceRequired && <span className="badge badge-yellow">📎 Evidence Required</span>}
+              <span className="badge badge-blue">{a.joinCount} joined</span>
+              {a.evidenceRequired && <span className="badge badge-yellow">Evidence Required</span>}
               <span className={`badge ${a.status === 'Open' ? 'badge-green' : 'badge-gray'}`}>{a.status}</span>
             </div>
-            <button className="btn btn-blue btn-sm" onClick={() => handleJoin(a.id)} disabled={a.status !== 'Open'}>Join Activity</button>
+            <Link href={`/dashboard/social/csr-activities/${a.id}`} className="btn btn-blue btn-sm" style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>
+              View Details
+            </Link>
           </div>
         ))}
       </div>
@@ -60,7 +63,7 @@ export default function CSRActivitiesPage() {
             <h2>New CSR Activity</h2>
             <div className="form-group"><label className="form-label">Title</label><input className="form-input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
             <div className="form-group"><label className="form-label">Description</label><textarea className="form-textarea" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
-            <div className="form-group"><label className="form-label">Icon (emoji)</label><input className="form-input" value={form.icon} onChange={e => setForm({...form, icon: e.target.value})} /></div>
+            <div className="form-group"><label className="form-label">Icon (text or symbol)</label><input className="form-input" value={form.icon} onChange={e => setForm({...form, icon: e.target.value})} /></div>
             <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div className={`toggle-switch ${form.evidenceRequired ? 'active' : ''}`} onClick={() => setForm({...form, evidenceRequired: !form.evidenceRequired})} />
               <label className="form-label" style={{ margin: 0 }}>Evidence Required</label>

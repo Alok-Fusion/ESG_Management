@@ -422,6 +422,53 @@ app.post('/api/csr-activities/join', requireAuth, async (req: AuthenticatedReque
   return res.status(201).json(participation);
 });
 
+app.get('/api/csr-activities/:id', async (req: Request, res: Response) => {
+  try {
+    const activity = await prisma.cSRActivity.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: { category: true, department: true },
+    });
+    if (!activity) return res.status(404).json({ error: 'Activity not found' });
+    return res.json(activity);
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+app.post('/api/participations/complete', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id, proofFileName } = req.body;
+    if (!id) return res.status(400).json({ error: 'Participation ID is required' });
+
+    const ep = await prisma.employeeParticipation.findUnique({
+      where: { id: parseInt(id) },
+      include: { activity: true }
+    });
+
+    if (!ep) return res.status(404).json({ error: 'Participation record not found' });
+    if (ep.employeeId !== req.user!.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (!proofFileName || proofFileName.trim() === '') {
+      return res.status(400).json({ error: 'Proof of completion is required for all activities' });
+    }
+
+    const updated = await prisma.employeeParticipation.update({
+      where: { id: ep.id },
+      data: {
+        proofFileName: proofFileName,
+        approvalStatus: 'Pending',
+      }
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ── Participations Endpoints ──
 app.get('/api/participations', async (req: Request, res: Response) => {
   const participations = await prisma.employeeParticipation.findMany({
@@ -477,6 +524,19 @@ app.get('/api/challenges', async (req: Request, res: Response) => {
     orderBy: { id: 'desc' },
   });
   return res.json(challenges);
+});
+
+app.get('/api/challenges/:id', async (req: Request, res: Response) => {
+  try {
+    const challenge = await prisma.challenge.findUnique({
+      where: { id: parseInt(req.params.id) },
+      include: { category: true },
+    });
+    if (!challenge) return res.status(404).json({ error: 'Challenge not found' });
+    return res.json(challenge);
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.post('/api/challenges', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {

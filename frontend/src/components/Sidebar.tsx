@@ -8,60 +8,60 @@ const navSections = [
   {
     title: null,
     items: [
-      { label: 'Dashboard', href: '/dashboard', icon: '📊', module: 'dashboard' },
-      { label: 'User Profile', href: '/dashboard/profile', icon: '👤', module: 'profile' },
+      { label: 'Dashboard', href: '/dashboard', icon: '', module: 'dashboard' },
+      { label: 'User Profile', href: '/dashboard/profile', icon: '', module: 'profile' },
     ],
   },
   {
     title: 'Environmental',
     module: 'environmental',
     items: [
-      { label: 'Emission Factors', href: '/dashboard/environmental/emission-factors', icon: '⚡', module: 'environmental' },
-      { label: 'Product ESG Profiles', href: '/dashboard/environmental/product-profiles', icon: '📦', module: 'environmental' },
-      { label: 'Carbon Transactions', href: '/dashboard/environmental/carbon-transactions', icon: '🏭', module: 'environmental' },
-      { label: 'Environmental Goals', href: '/dashboard/environmental/goals', icon: '🎯', module: 'environmental' },
+      { label: 'Emission Factors', href: '/dashboard/environmental/emission-factors', icon: '', module: 'environmental' },
+      { label: 'Product ESG Profiles', href: '/dashboard/environmental/product-profiles', icon: '', module: 'environmental' },
+      { label: 'Carbon Transactions', href: '/dashboard/environmental/carbon-transactions', icon: '', module: 'environmental' },
+      { label: 'Environmental Goals', href: '/dashboard/environmental/goals', icon: '', module: 'environmental' },
     ],
   },
   {
     title: 'Social',
     module: 'social',
     items: [
-      { label: 'CSR Activities', href: '/dashboard/social/csr-activities', icon: '🤝', module: 'social' },
-      { label: 'Employee Participation', href: '/dashboard/social/participation', icon: '👥', module: 'social' },
-      { label: 'Diversity Dashboard', href: '/dashboard/social/diversity', icon: '🌍', module: 'social' },
+      { label: 'CSR Activities', href: '/dashboard/social/csr-activities', icon: '', module: 'social' },
+      { label: 'Employee Participation', href: '/dashboard/social/participation', icon: '', module: 'social' },
+      { label: 'Diversity Dashboard', href: '/dashboard/social/diversity', icon: '', module: 'social' },
     ],
   },
   {
     title: 'Governance',
     module: 'governance',
     items: [
-      { label: 'Policies', href: '/dashboard/governance/policies', icon: '📋', module: 'governance' },
-      { label: 'Policy Acknowledgements', href: '/dashboard/governance/acknowledgements', icon: '✅', module: 'governance' },
-      { label: 'Audits', href: '/dashboard/governance/audits', icon: '🔍', module: 'governance' },
-      { label: 'Compliance Issues', href: '/dashboard/governance/compliance', icon: '⚠️', module: 'governance' },
+      { label: 'Policies', href: '/dashboard/governance/policies', icon: '', module: 'governance' },
+      { label: 'Policy Acknowledgements', href: '/dashboard/governance/acknowledgements', icon: '', module: 'governance' },
+      { label: 'Audits', href: '/dashboard/governance/audits', icon: '', module: 'governance' },
+      { label: 'Compliance Issues', href: '/dashboard/governance/compliance', icon: '', module: 'governance' },
     ],
   },
   {
     title: 'Gamification',
     module: 'gamification',
     items: [
-      { label: 'Challenges', href: '/dashboard/gamification/challenges', icon: '🏆', module: 'gamification' },
-      { label: 'Challenge Participation', href: '/dashboard/gamification/participation', icon: '🎮', module: 'gamification' },
-      { label: 'Badges', href: '/dashboard/gamification/badges', icon: '🎖️', module: 'gamification' },
-      { label: 'Rewards', href: '/dashboard/gamification/rewards', icon: '🎁', module: 'gamification' },
-      { label: 'Leaderboard', href: '/dashboard/gamification/leaderboard', icon: '📈', module: 'gamification' },
+      { label: 'Challenges', href: '/dashboard/gamification/challenges', icon: '', module: 'gamification' },
+      { label: 'Challenge Participation', href: '/dashboard/gamification/participation', icon: '', module: 'gamification' },
+      { label: 'Badges', href: '/dashboard/gamification/badges', icon: '', module: 'gamification' },
+      { label: 'Rewards', href: '/dashboard/gamification/rewards', icon: '', module: 'gamification' },
+      { label: 'Leaderboard', href: '/dashboard/gamification/leaderboard', icon: '', module: 'gamification' },
     ],
   },
   {
     title: 'Analytics',
     items: [
-      { label: 'Reports', href: '/dashboard/reports', icon: '📑', module: 'reports' },
+      { label: 'Reports', href: '/dashboard/reports', icon: '', module: 'reports' },
     ],
   },
   {
     title: 'System',
     items: [
-      { label: 'Settings', href: '/dashboard/settings', icon: '⚙️', module: 'settings' },
+      { label: 'Settings', href: '/dashboard/settings', icon: '', module: 'settings' },
     ],
   },
 ];
@@ -105,7 +105,7 @@ export default function Sidebar() {
   return (
     <nav className="sidebar">
       <div className="sidebar-logo">
-        <span>🌍 EcoSphere</span>
+        <span>EcoSphere</span>
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', paddingTop: '8px' }}>

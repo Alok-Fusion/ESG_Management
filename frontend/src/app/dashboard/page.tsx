@@ -67,10 +67,10 @@ export default function DashboardPage() {
             + Log Carbon Data
           </Link>
           <Link href="/dashboard/gamification/challenges" className="btn btn-orange" style={{ textDecoration: 'none' }}>
-            🏆 Start Challenge
+            Start Challenge
           </Link>
           <Link href="/dashboard/reports" className="btn btn-secondary" style={{ textDecoration: 'none' }}>
-            📑 View Reports
+            View Reports
           </Link>
         </div>
       </div>
@@ -97,12 +97,12 @@ export default function DashboardPage() {
 
       {/* AI Insight */}
       <div className="insight-card">
-        <h3>✨ AI Insight Generator</h3>
+        <h3>AI Insight Generator</h3>
         {insight ? (
           <div>
             <p className="insight-text">{insight}</p>
             <button className="btn btn-secondary btn-sm" onClick={generateInsight} disabled={insightLoading} style={{ marginTop: '14px' }}>
-              {insightLoading ? 'Regenerating...' : '🔄 Regenerate'}
+              {insightLoading ? 'Regenerating...' : 'Regenerate'}
             </button>
           </div>
         ) : (
@@ -111,7 +111,7 @@ export default function DashboardPage() {
               Click below to generate an AI-powered analysis of your ESG performance.
             </p>
             <button className="btn btn-primary btn-sm" onClick={generateInsight} disabled={insightLoading} style={{ marginTop: '14px' }}>
-              {insightLoading ? '⏳ Generating...' : '✨ Generate Insight'}
+              {insightLoading ? 'Generating...' : 'Generate Insight'}
             </button>
           </div>
         )}

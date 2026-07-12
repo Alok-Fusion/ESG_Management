@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 
 interface Challenge { id: number; title: string; description: string; xp: number; difficulty: string; deadline: string; status: string; evidenceRequired: boolean; }
 const statuses = ['All', 'Draft', 'Active', 'UnderReview', 'Completed', 'Archived'];
@@ -52,12 +53,14 @@ export default function ChallengesPage() {
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 14px', lineHeight: 1.6 }}>{c.description}</p>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-              <span className="badge badge-orange">⚡ {c.xp} XP</span>
+              <span className="badge badge-orange">{c.xp} XP</span>
               <span className={`badge ${difficultyColors[c.difficulty] || 'badge-gray'}`}>{c.difficulty}</span>
-              <span className="badge badge-gray">📅 {new Date(c.deadline).toLocaleDateString()}</span>
-              {c.evidenceRequired && <span className="badge badge-yellow">📎 Evidence</span>}
+              <span className="badge badge-gray">Deadline: {new Date(c.deadline).toLocaleDateString()}</span>
+              {c.evidenceRequired && <span className="badge badge-yellow">Evidence Required</span>}
             </div>
-            {c.status === 'Active' && <button className="btn btn-orange btn-sm" onClick={() => handleJoin(c.id)}>🏆 Join Challenge</button>}
+            <Link href={`/dashboard/gamification/challenges/${c.id}`} className="btn btn-orange btn-sm" style={{ textDecoration: 'none', display: 'inline-block', textAlign: 'center' }}>
+              View Details
+            </Link>
           </div>
         ))}
       </div>
