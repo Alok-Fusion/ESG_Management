@@ -18,8 +18,25 @@ interface Cat {
   status: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  departmentId: number | null;
+  department?: { name: string } | null;
+}
+
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<'departments' | 'categories' | 'esg' | 'notifications'>('departments');
+  const [currentUser, setCurrentUser] = useState<{ role: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'departments' | 'categories' | 'esg' | 'notifications' | 'users'>('notifications');
+
+  // Users State
+  const [users, setUsers] = useState<User[]>([]);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [userForm, setUserForm] = useState({ id: '', name: '', email: '', role: 'Employee', departmentId: '', password: '', status: 'Active' });
 
   // Departments State
   const [depts, setDepts] = useState<Dept[]>([]);
@@ -60,6 +77,15 @@ export default function SettingsPage() {
 
   const fetchData = async () => {
     try {
+      const meRes = await fetch('/api/auth/me');
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        setCurrentUser(meData.user);
+        if (meData.user.role === 'Admin') {
+          setActiveTab('departments');
+        }
+      }
+
       const dRes = await fetch('/api/departments');
       const dData = await dRes.json();
       setDepts(dData);
@@ -73,8 +99,68 @@ export default function SettingsPage() {
       if (Object.keys(sData).length > 0) {
         setConfigs((prev) => ({ ...prev, ...sData }));
       }
+
+      const uRes = await fetch('/api/admin/users');
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        setUsers(uData);
+      }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // User Management Actions
+  const handleOpenCreateUser = () => {
+    setIsEditingUser(false);
+    setUserForm({ id: '', name: '', email: '', role: 'Employee', departmentId: '', password: '', status: 'Active' });
+    setShowUserModal(true);
+  };
+
+  const handleOpenEditUser = (u: User) => {
+    setIsEditingUser(true);
+    setUserForm({
+      id: String(u.id),
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      departmentId: u.departmentId ? String(u.departmentId) : '',
+      password: '',
+      status: u.status || 'Active'
+    });
+    setShowUserModal(true);
+  };
+
+  const handleSaveUser = async () => {
+    const url = '/api/admin/users';
+    const method = isEditingUser ? 'PATCH' : 'POST';
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ...userForm,
+        ...(userForm.id && { id: parseInt(userForm.id) }),
+        departmentId: userForm.departmentId ? parseInt(userForm.departmentId) : null
+      }),
+    });
+    if (res.ok) {
+      const uRes = await fetch('/api/admin/users');
+      if (uRes.ok) {
+        const uData = await uRes.json();
+        setUsers(uData);
+      }
+      setShowUserModal(false);
+    } else {
+      const data = await res.json();
+      alert(data.error || 'Failed to save user.');
+    }
+  };
+
+  const handleDeleteUser = async (id: number) => {
+    if (!confirm('Delete this user?')) return;
+    const res = await fetch(`/api/admin/users?id=${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setUsers(users.filter(u => u.id !== id));
     }
   };
 
@@ -148,24 +234,34 @@ export default function SettingsPage() {
       </div>
 
       <div className="tab-pills" style={{ marginBottom: '28px' }}>
-        <button
-          className={`tab-pill ${activeTab === 'departments' ? 'active' : ''}`}
-          onClick={() => setActiveTab('departments')}
-        >
-          Departments
-        </button>
-        <button
-          className={`tab-pill ${activeTab === 'categories' ? 'active' : ''}`}
-          onClick={() => setActiveTab('categories')}
-        >
-          Categories
-        </button>
-        <button
-          className={`tab-pill ${activeTab === 'esg' ? 'active' : ''}`}
-          onClick={() => setActiveTab('esg')}
-        >
-          ESG Configuration
-        </button>
+        {currentUser?.role === 'Admin' && (
+          <>
+            <button
+              className={`tab-pill ${activeTab === 'departments' ? 'active' : ''}`}
+              onClick={() => setActiveTab('departments')}
+            >
+              Departments
+            </button>
+            <button
+              className={`tab-pill ${activeTab === 'categories' ? 'active' : ''}`}
+              onClick={() => setActiveTab('categories')}
+            >
+              Categories
+            </button>
+            <button
+              className={`tab-pill ${activeTab === 'esg' ? 'active' : ''}`}
+              onClick={() => setActiveTab('esg')}
+            >
+              ESG Configuration
+            </button>
+            <button
+              className={`tab-pill ${activeTab === 'users' ? 'active' : ''}`}
+              onClick={() => setActiveTab('users')}
+            >
+              User Management
+            </button>
+          </>
+        )}
         <button
           className={`tab-pill ${activeTab === 'notifications' ? 'active' : ''}`}
           onClick={() => setActiveTab('notifications')}
@@ -402,6 +498,62 @@ export default function SettingsPage() {
         </div>
       )}
 
+      {/* Users Tab */}
+      {activeTab === 'users' && currentUser?.role === 'Admin' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0, fontWeight: 700 }}>User Accounts</h3>
+            <button className="btn btn-primary btn-sm" onClick={handleOpenCreateUser}>
+              + Add User
+            </button>
+          </div>
+
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{u.name}</td>
+                    <td>{u.email}</td>
+                    <td>
+                      <span className={`badge ${u.role === 'Admin' ? 'badge-red' : u.role === 'Manager' ? 'badge-blue' : 'badge-gray'}`}>
+                        {u.role}
+                      </span>
+                    </td>
+                    <td>{u.department?.name || 'No Department'}</td>
+                    <td>
+                      <span className={`badge ${u.status === 'Active' ? 'badge-green' : 'badge-gray'}`}>
+                        {u.status || 'Active'}
+                      </span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleOpenEditUser(u)}>
+                          Edit
+                        </button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleDeleteUser(u.id)}>
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
       {/* Notifications Settings Tab */}
       {activeTab === 'notifications' && (
         <div className="card card-purple">
@@ -572,6 +724,99 @@ export default function SettingsPage() {
                 Create Category
               </button>
               <button className="btn btn-secondary" onClick={() => setShowCatModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* User Add/Edit Modal */}
+      {showUserModal && (
+        <div className="modal-overlay" onClick={() => setShowUserModal(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h2>{isEditingUser ? 'Edit User Account' : 'Add New User'}</h2>
+
+            <div className="form-group">
+              <label className="form-label">Full Name</label>
+              <input
+                type="text"
+                className="form-input"
+                value={userForm.name}
+                onChange={(e) => setUserForm({ ...userForm, name: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Email Address</label>
+              <input
+                type="email"
+                className="form-input"
+                value={userForm.email}
+                onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <select
+                className="form-select"
+                value={userForm.role}
+                onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
+              >
+                <option value="Employee">Employee</option>
+                <option value="Manager">Manager</option>
+                <option value="Admin">Admin</option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Department</label>
+              <select
+                className="form-select"
+                value={userForm.departmentId}
+                onChange={(e) => setUserForm({ ...userForm, departmentId: e.target.value })}
+              >
+                <option value="">No Department</option>
+                {depts.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                {isEditingUser ? 'Update Password (Optional)' : 'Password'}
+              </label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder={isEditingUser ? 'Leave blank to keep current' : 'Enter password'}
+                value={userForm.password}
+                onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
+              />
+            </div>
+
+            {isEditingUser && (
+              <div className="form-group">
+                <label className="form-label">Status</label>
+                <select
+                  className="form-select"
+                  value={userForm.status}
+                  onChange={(e) => setUserForm({ ...userForm, status: e.target.value })}
+                >
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '24px' }}>
+              <button className="btn btn-primary" onClick={handleSaveUser}>
+                {isEditingUser ? 'Save Changes' : 'Create User'}
+              </button>
+              <button className="btn btn-secondary" onClick={() => setShowUserModal(false)}>
                 Cancel
               </button>
             </div>

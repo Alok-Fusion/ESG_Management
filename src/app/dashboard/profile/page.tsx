@@ -25,14 +25,17 @@ interface Challenge {
   id: number;
   title: string;
   description: string;
-  points: number;
+  xp: number;
   difficulty: string;
+  evidenceRequired: boolean;
 }
 
 interface ChallengeParticipation {
   id: number;
-  status: string;
-  progress: number;
+  progressPct: number;
+  proofFileName: string;
+  approvalStatus: string;
+  xpAwarded: number;
   challenge: Challenge;
 }
 
@@ -103,6 +106,32 @@ export default function ProfilePage() {
       .then(setDepts)
       .catch(console.error);
   }, []);
+
+  const [proofFiles, setProofFiles] = useState<Record<number, string>>({});
+
+  const handleCompleteChallenge = async (participationId: number) => {
+    setError('');
+    setSuccess('');
+    const proofFileName = proofFiles[participationId] || '';
+
+    try {
+      const res = await fetch('/api/challenge-participations/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: participationId, proofFileName }),
+      });
+
+      if (res.ok) {
+        setSuccess('Challenge submitted for review!');
+        fetchProfile();
+      } else {
+        const data = await res.json();
+        setError(data.error || 'Failed to submit challenge proof.');
+      }
+    } catch {
+      setError('Connection failed. Please try again.');
+    }
+  };
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,22 +254,28 @@ export default function ProfilePage() {
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Email Address</label>
+                <label className="form-label">
+                  Email Address {profile?.role !== 'Admin' && <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--accent-red)' }}>(Locked for non-admins)</span>}
+                </label>
                 <input
                   type="email"
                   className="form-input"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  disabled={profile?.role !== 'Admin'}
                   required
                 />
               </div>
 
               <div className="form-group" style={{ margin: 0 }}>
-                <label className="form-label">Department</label>
+                <label className="form-label">
+                  Department {profile?.role !== 'Admin' && <span style={{ fontSize: '11px', fontWeight: 400, color: 'var(--accent-red)' }}>(Locked for non-admins)</span>}
+                </label>
                 <select
                   className="form-select"
                   value={deptId}
                   onChange={(e) => setDeptId(e.target.value)}
+                  disabled={profile?.role !== 'Admin'}
                 >
                   <option value="">Select Department</option>
                   {depts.map((d) => (
@@ -354,24 +389,59 @@ export default function ProfilePage() {
                           fontSize: '10px',
                           padding: '2px 6px',
                           borderRadius: '4px',
-                          background: cp.status === 'Completed' ? 'rgba(34,197,94,0.15)' : 'rgba(59,130,246,0.15)',
-                          color: cp.status === 'Completed' ? 'var(--accent-green)' : 'var(--accent-blue)',
+                          background: cp.approvalStatus === 'Approved' ? 'rgba(34,197,94,0.15)' : cp.approvalStatus === 'Rejected' ? 'rgba(239,68,68,0.15)' : 'rgba(59,130,246,0.15)',
+                          color: cp.approvalStatus === 'Approved' ? 'var(--accent-green)' : cp.approvalStatus === 'Rejected' ? 'var(--accent-red)' : 'var(--accent-blue)',
                           fontWeight: 700,
                         }}>
-                          {cp.status}
+                          {cp.approvalStatus}
                         </span>
                       </div>
                       <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: '0 0 8px 0' }}>
                         {cp.challenge.description}
                       </p>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: cp.progressPct < 100 ? '10px' : '0' }}>
                         <span style={{ fontSize: '11px', color: 'var(--accent-green)', fontWeight: 600 }}>
-                          +{cp.challenge.points} Points
+                          +{cp.challenge.xp} XP
                         </span>
                         <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          Progress: {cp.progress}%
+                          Progress: {cp.progressPct}%
                         </span>
                       </div>
+
+                      {cp.progressPct < 100 && (
+                        <div style={{ borderTop: '1px dashed var(--border-default)', paddingTop: '8px', marginTop: '8px' }}>
+                          {cp.challenge.evidenceRequired ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <label style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-secondary)' }}>Completion Evidence / Receipt</label>
+                              <div style={{ display: 'flex', gap: '6px' }}>
+                                <input
+                                  type="text"
+                                  className="form-input"
+                                  placeholder="e.g. receipt_ref.pdf or description"
+                                  style={{ padding: '6px 10px', fontSize: '12px', flex: 1 }}
+                                  value={proofFiles[cp.id] || ''}
+                                  onChange={(e) => setProofFiles({ ...proofFiles, [cp.id]: e.target.value })}
+                                />
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  style={{ whiteSpace: 'nowrap', fontSize: '12px' }}
+                                  onClick={() => handleCompleteChallenge(cp.id)}
+                                >
+                                  Submit
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button
+                              className="btn btn-primary btn-sm"
+                              style={{ width: '100%', fontSize: '12px', justifyContent: 'center' }}
+                              onClick={() => handleCompleteChallenge(cp.id)}
+                            >
+                              Complete Challenge
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

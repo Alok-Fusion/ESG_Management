@@ -34,6 +34,96 @@ function requireAuth(req: AuthenticatedRequest, res: Response, next: NextFunctio
   next();
 }
 
+function requireAdmin(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const session = getSession(req);
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (session.role !== 'Admin') {
+    return res.status(403).json({ error: 'Forbidden. Admin role required.' });
+  }
+  req.user = session;
+  next();
+}
+
+function requireManager(req: AuthenticatedRequest, res: Response, next: NextFunction) {
+  const session = getSession(req);
+  if (!session) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  if (session.role !== 'Admin' && session.role !== 'Manager') {
+    return res.status(403).json({ error: 'Forbidden. Manager or Admin role required.' });
+  }
+  req.user = session;
+  next();
+}
+
+// ── Admin-Only User Management ──
+app.get('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+  const users = await prisma.user.findMany({
+    include: { department: true },
+    orderBy: { name: 'asc' }
+  });
+  return res.json(users);
+});
+
+app.post('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { name, email, role, departmentId, password } = req.body;
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ error: 'Name, email, role, and password are required' });
+    }
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(400).json({ error: 'Email already registered' });
+
+    const passwordHash = hashPassword(password);
+    const newUser = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role,
+        departmentId: departmentId ? parseInt(departmentId) : null,
+      },
+      include: { department: true }
+    });
+    return res.status(201).json(newUser);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to create user' });
+  }
+});
+
+app.patch('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+  try {
+    const { id, name, email, role, departmentId, status, password } = req.body;
+    if (!id) return res.status(400).json({ error: 'User ID is required' });
+
+    const updateData: any = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (role) updateData.role = role;
+    if (departmentId !== undefined) updateData.departmentId = departmentId ? parseInt(departmentId) : null;
+    if (status) updateData.status = status;
+    if (password) updateData.passwordHash = hashPassword(password);
+
+    const updated = await prisma.user.update({
+      where: { id: parseInt(id) },
+      data: updateData,
+      include: { department: true }
+    });
+    return res.json(updated);
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+app.delete('/api/admin/users', requireAdmin, async (req: Request, res: Response) => {
+  const id = req.query.id as string;
+  if (!id) return res.status(400).json({ error: 'ID required' });
+  await prisma.user.delete({ where: { id: parseInt(id) } });
+  return res.json({ success: true });
+});
+
 // ── Auth Endpoints ──
 app.post('/api/auth/signup', async (req: Request, res: Response) => {
   try {
@@ -157,10 +247,23 @@ app.put('/api/users/profile', requireAuth, async (req: AuthenticatedRequest, res
     const userId = req.user!.userId;
     const { name, email, departmentId, password } = req.body;
 
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+
+    // Role Hierarchy rule: Employee and Manager cannot update their email and department
+    if (user.role !== 'Admin') {
+      if (email && email !== user.email) {
+        return res.status(403).json({ error: 'Employees and Managers are not permitted to change their email address.' });
+      }
+      if (departmentId !== undefined && parseInt(departmentId) !== user.departmentId) {
+        return res.status(403).json({ error: 'Employees and Managers are not permitted to change their department.' });
+      }
+    }
+
     const updateData: any = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
-    if (departmentId) updateData.departmentId = parseInt(departmentId);
+    if (departmentId !== undefined) updateData.departmentId = departmentId ? parseInt(departmentId) : null;
     if (password) {
       updateData.passwordHash = hashPassword(password);
     }
@@ -282,7 +385,7 @@ app.get('/api/csr-activities', async (req: Request, res: Response) => {
   return res.json(activities);
 });
 
-app.post('/api/csr-activities', async (req: Request, res: Response) => {
+app.post('/api/csr-activities', requireManager, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const activity = await prisma.cSRActivity.create({
     data: {
@@ -376,7 +479,7 @@ app.get('/api/challenges', async (req: Request, res: Response) => {
   return res.json(challenges);
 });
 
-app.post('/api/challenges', async (req: Request, res: Response) => {
+app.post('/api/challenges', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const challenge = await prisma.challenge.create({
     data: {
@@ -393,7 +496,7 @@ app.post('/api/challenges', async (req: Request, res: Response) => {
   return res.status(201).json(challenge);
 });
 
-app.patch('/api/challenges', async (req: Request, res: Response) => {
+app.patch('/api/challenges', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const { id, status } = req.body;
   const validTransitions: Record<string, string[]> = {
     'Draft': ['Active'],
@@ -446,6 +549,41 @@ app.post('/api/challenge-participations', requireAuth, async (req: Authenticated
     },
   });
   return res.status(201).json(participation);
+});
+
+app.post('/api/challenge-participations/complete', requireAuth, async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { id, proofFileName } = req.body;
+    if (!id) return res.status(400).json({ error: 'Participation ID is required' });
+
+    const cp = await prisma.challengeParticipation.findUnique({
+      where: { id: parseInt(id) },
+      include: { challenge: true }
+    });
+
+    if (!cp) return res.status(404).json({ error: 'Participation record not found' });
+    if (cp.employeeId !== req.user!.userId) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    if (cp.challenge.evidenceRequired && !proofFileName) {
+      return res.status(400).json({ error: 'Proof of completion is required for this challenge' });
+    }
+
+    const updated = await prisma.challengeParticipation.update({
+      where: { id: cp.id },
+      data: {
+        proofFileName: proofFileName || 'Self-Attested',
+        progressPct: 100,
+        approvalStatus: 'Pending',
+      }
+    });
+
+    return res.json(updated);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 app.patch('/api/challenge-participations', async (req: Request, res: Response) => {
@@ -567,7 +705,7 @@ app.get('/api/audits', async (req: Request, res: Response) => {
   return res.json(audits);
 });
 
-app.post('/api/audits', async (req: Request, res: Response) => {
+app.post('/api/audits', requireManager, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const audit = await prisma.audit.create({
     data: {
@@ -596,7 +734,7 @@ app.get('/api/compliance-issues', async (req: Request, res: Response) => {
   return res.json(enriched);
 });
 
-app.post('/api/compliance-issues', async (req: Request, res: Response) => {
+app.post('/api/compliance-issues', requireManager, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   if (!data.ownerId) return res.status(400).json({ error: 'Owner is required' });
   if (!data.dueDate) return res.status(400).json({ error: 'Due date is required' });
@@ -632,7 +770,7 @@ app.get('/api/policies', async (req: Request, res: Response) => {
   return res.json(policies);
 });
 
-app.post('/api/policies', async (req: Request, res: Response) => {
+app.post('/api/policies', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const policy = await prisma.eSGPolicy.create({
     data: {
@@ -646,7 +784,7 @@ app.post('/api/policies', async (req: Request, res: Response) => {
   return res.status(201).json(policy);
 });
 
-app.delete('/api/policies', async (req: Request, res: Response) => {
+app.delete('/api/policies', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.query.id as string;
   if (!id) return res.status(400).json({ error: 'ID required' });
   await prisma.eSGPolicy.delete({ where: { id: parseInt(id) } });
@@ -952,7 +1090,7 @@ app.get('/api/departments', async (req: Request, res: Response) => {
   return res.json(departments);
 });
 
-app.post('/api/departments', async (req: Request, res: Response) => {
+app.post('/api/departments', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const dept = await prisma.department.create({
     data: {
@@ -967,7 +1105,7 @@ app.post('/api/departments', async (req: Request, res: Response) => {
   return res.status(201).json(dept);
 });
 
-app.patch('/api/departments', async (req: Request, res: Response) => {
+app.patch('/api/departments', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const updated = await prisma.department.update({
     where: { id: parseInt(data.id) },
@@ -981,7 +1119,7 @@ app.patch('/api/departments', async (req: Request, res: Response) => {
   return res.json(updated);
 });
 
-app.delete('/api/departments', async (req: Request, res: Response) => {
+app.delete('/api/departments', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.query.id as string;
   if (!id) return res.status(400).json({ error: 'ID required' });
   await prisma.department.delete({ where: { id: parseInt(id) } });
@@ -994,7 +1132,7 @@ app.get('/api/categories', async (req: Request, res: Response) => {
   return res.json(categories);
 });
 
-app.post('/api/categories', async (req: Request, res: Response) => {
+app.post('/api/categories', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const data = req.body;
   const category = await prisma.category.create({
     data: { name: data.name, type: data.type, status: 'Active' },
@@ -1002,7 +1140,7 @@ app.post('/api/categories', async (req: Request, res: Response) => {
   return res.status(201).json(category);
 });
 
-app.delete('/api/categories', async (req: Request, res: Response) => {
+app.delete('/api/categories', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const id = req.query.id as string;
   if (!id) return res.status(400).json({ error: 'ID required' });
   await prisma.category.delete({ where: { id: parseInt(id) } });
@@ -1017,7 +1155,7 @@ app.get('/api/settings', async (req: Request, res: Response) => {
   return res.json(configMap);
 });
 
-app.patch('/api/settings', async (req: Request, res: Response) => {
+app.patch('/api/settings', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   const updates = req.body;
   for (const [key, value] of Object.entries(updates)) {
     await prisma.eSGConfig.upsert({
@@ -1030,7 +1168,7 @@ app.patch('/api/settings', async (req: Request, res: Response) => {
 });
 
 // ── Recalculate Score Endpoint ──
-app.post('/api/scores/recalculate', async (req: Request, res: Response) => {
+app.post('/api/scores/recalculate', requireAdmin, async (req: AuthenticatedRequest, res: Response) => {
   try {
     const results = await recalculateAllScores();
     return res.json({ success: true, scores: results });
