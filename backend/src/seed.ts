@@ -120,10 +120,46 @@ async function main() {
     },
   });
 
+  const vikram = await prisma.user.create({
+    data: {
+      name: 'Vikram Malhotra',
+      email: 'vikram@ecosphere.com',
+      passwordHash,
+      role: 'Manager',
+      departmentId: manufacturing.id,
+      xpTotal: 1200,
+      pointsBalance: 400,
+    },
+  });
+
+  const neha = await prisma.user.create({
+    data: {
+      name: 'Neha Kapoor',
+      email: 'neha@ecosphere.com',
+      passwordHash,
+      role: 'Manager',
+      departmentId: logistics.id,
+      xpTotal: 1400,
+      pointsBalance: 450,
+    },
+  });
+
+  const amit = await prisma.user.create({
+    data: {
+      name: 'Amit Verma',
+      email: 'amit@ecosphere.com',
+      passwordHash,
+      role: 'Manager',
+      departmentId: corporate.id,
+      xpTotal: 1100,
+      pointsBalance: 350,
+    },
+  });
+
   // Update department heads
-  await prisma.department.update({ where: { id: manufacturing.id }, data: { headUserId: admin.id } });
-  await prisma.department.update({ where: { id: logistics.id }, data: { headUserId: rIyer.id } });
-  await prisma.department.update({ where: { id: corporate.id }, data: { headUserId: aMehta.id } });
+  await prisma.department.update({ where: { id: manufacturing.id }, data: { headUserId: vikram.id } });
+  await prisma.department.update({ where: { id: logistics.id }, data: { headUserId: neha.id } });
+  await prisma.department.update({ where: { id: corporate.id }, data: { headUserId: amit.id } });
 
   // ── Categories ──
   const csrCat1 = await prisma.category.create({ data: { name: 'Community Service', type: 'CSR_Activity' } });
