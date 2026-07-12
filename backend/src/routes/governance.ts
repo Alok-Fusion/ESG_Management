@@ -58,7 +58,7 @@ router.post('/policy-acknowledgements', requireManager, async (req: Authenticate
 });
 
 // ── Audits Endpoints ──
-router.get('/api/audits', async (req: Request, res: Response) => {
+router.get('/audits', async (req: Request, res: Response) => {
   const audits = await prisma.audit.findMany({
     include: { department: true, auditor: true },
     orderBy: { date: 'desc' },
