@@ -6,8 +6,12 @@ interface CP { id: number; progressPct: number; proofFileName: string; approvalS
 export default function ChallengeParticipationPage() {
   const [items, setItems] = useState<CP[]>([]);
   const [error, setError] = useState('');
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/challenge-participations').then(r => r.json()).then(setItems); }, []);
+  useEffect(() => {
+    fetch('/api/challenge-participations').then(r => r.json()).then(setItems);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const handleAction = async (id: number, status: string) => {
     setError('');
@@ -15,6 +19,15 @@ export default function ChallengeParticipationPage() {
     if (res.ok) { const updated = await res.json(); setItems(items.map(i => i.id === id ? { ...i, approvalStatus: status, xpAwarded: updated.xpAwarded } : i)); }
     else { const d = await res.json(); setError(d.error); }
   };
+
+  if (userRole === 'Employee') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '300px', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: 700, marginBottom: '8px' }}>Access Restricted</h2>
+        <p style={{ color: 'var(--text-secondary)' }}>You do not have permission to manage and approve challenge participations.</p>
+      </div>
+    );
+  }
 
   return (
     <div>

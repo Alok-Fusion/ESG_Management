@@ -7,8 +7,12 @@ export default function ProductProfilesPage() {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ productName: '', carbonFootprint: '', sustainabilityRating: 'A', notes: '' });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/product-profiles').then(r => r.json()).then(setProfiles); }, []);
+  useEffect(() => {
+    fetch('/api/product-profiles').then(r => r.json()).then(setProfiles);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const handleCreate = async () => {
     const res = await fetch('/api/product-profiles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
@@ -21,7 +25,9 @@ export default function ProductProfilesPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Product ESG Profiles</h1><p className="page-subtitle">Sustainability ratings for products</p></div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Profile</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Profile</button>
+        )}
       </div>
       <div className="card-grid">
         {profiles.map(p => (

@@ -10,8 +10,12 @@ export default function ChallengesPage() {
   const [filter, setFilter] = useState('All');
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', xp: '100', difficulty: 'Medium', deadline: '', evidenceRequired: false, status: 'Draft' });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/challenges').then(r => r.json()).then(setChallenges); }, []);
+  useEffect(() => {
+    fetch('/api/challenges').then(r => r.json()).then(setChallenges);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const filtered = filter === 'All' ? challenges : challenges.filter(c => c.status === filter);
 
@@ -30,7 +34,9 @@ export default function ChallengesPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Challenges</h1><p className="page-subtitle">Sustainability challenges with XP rewards</p></div>
-        <button className="btn btn-orange" onClick={() => setShowModal(true)}>+ New Challenge</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-orange" onClick={() => setShowModal(true)}>+ New Challenge</button>
+        )}
       </div>
 
       <div className="tab-pills">

@@ -7,8 +7,12 @@ export default function CSRActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', icon: '🌱', evidenceRequired: false });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/csr-activities').then(r => r.json()).then(setActivities); }, []);
+  useEffect(() => {
+    fetch('/api/csr-activities').then(r => r.json()).then(setActivities);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const handleCreate = async () => {
     const res = await fetch('/api/csr-activities', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
@@ -24,7 +28,9 @@ export default function CSRActivitiesPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">CSR Activities</h1><p className="page-subtitle">Community & social responsibility programs</p></div>
-        <button className="btn btn-blue" onClick={() => setShowModal(true)}>+ New Activity</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-blue" onClick={() => setShowModal(true)}>+ New Activity</button>
+        )}
       </div>
 
       <div className="card-grid">

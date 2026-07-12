@@ -9,10 +9,12 @@ export default function GoalsPage() {
   const [showModal, setShowModal] = useState(false);
   const [depts, setDepts] = useState<{id:number;name:string}[]>([]);
   const [form, setForm] = useState({ name: '', departmentId: '', targetCO2: '', currentCO2: '0', deadline: '', status: 'Active' });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
   useEffect(() => {
     fetch('/api/environmental-goals').then(r => r.json()).then(setGoals);
     fetch('/api/departments').then(r => r.json()).then(setDepts);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
   }, []);
 
   const filtered = goals.filter(g => g.name.toLowerCase().includes(search.toLowerCase()));
@@ -48,13 +50,26 @@ export default function GoalsPage() {
           <div style={{ position: 'relative' }}>
             <button className="btn btn-secondary" onClick={exportCSV}>📥 Export CSV</button>
           </div>
-          <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Goal</button>
+          {userRole !== 'Employee' && (
+            <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Goal</button>
+          )}
         </div>
       </div>
 
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
-          <thead><tr><th>Name</th><th>Department</th><th>Target CO₂</th><th>Current CO₂</th><th>Progress</th><th>Deadline</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Target CO₂</th>
+              <th>Current CO₂</th>
+              <th>Progress</th>
+              <th>Deadline</th>
+              <th>Status</th>
+              {userRole !== 'Employee' && <th>Actions</th>}
+            </tr>
+          </thead>
           <tbody>
             {filtered.map(g => {
               const progress = g.targetCO2 > 0 ? Math.round((1 - g.currentCO2 / g.targetCO2) * 100) : 0;
@@ -72,7 +87,9 @@ export default function GoalsPage() {
                   </td>
                   <td>{new Date(g.deadline).toLocaleDateString()}</td>
                   <td><span className={`badge ${g.status === 'Completed' ? 'badge-green' : g.status === 'On Track' ? 'badge-blue' : 'badge-yellow'}`}>{g.status}</span></td>
-                  <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(g.id)}>🗑</button></td>
+                  {userRole !== 'Employee' && (
+                    <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(g.id)}>🗑</button></td>
+                  )}
                 </tr>
               );
             })}

@@ -9,12 +9,13 @@ export default function AuditsPage() {
   const [depts, setDepts] = useState<{id:number;name:string}[]>([]);
   const [users, setUsers] = useState<{id:number;name:string}[]>([]);
   const [form, setForm] = useState({ title: '', departmentId: '', auditorId: '', date: '', findings: '', status: 'UnderReview' });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
   useEffect(() => {
     fetch('/api/audits').then(r => r.json()).then(setAudits);
     fetch('/api/departments').then(r => r.json()).then(setDepts);
-    fetch('/api/auth/me').then(r => r.json()).then(() => {
-      // For simplicity, fetch users from departments
+    fetch('/api/auth/me').then(r => r.json()).then(d => {
+      if (d.role) setUserRole(d.role);
     });
   }, []);
 
@@ -27,7 +28,9 @@ export default function AuditsPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Audits</h1><p className="page-subtitle">Internal and external audit records</p></div>
-        <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Audit</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Audit</button>
+        )}
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">

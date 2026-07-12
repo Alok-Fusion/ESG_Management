@@ -7,8 +7,12 @@ export default function PoliciesPage() {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ title: '', description: '', category: 'Environmental', version: '1.0', mandatory: false });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/policies').then(r => r.json()).then(setPolicies); }, []);
+  useEffect(() => {
+    fetch('/api/policies').then(r => r.json()).then(setPolicies);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const handleCreate = async () => {
     const res = await fetch('/api/policies', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
@@ -25,11 +29,21 @@ export default function PoliciesPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Policies</h1><p className="page-subtitle">ESG policies and guidelines</p></div>
-        <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Policy</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Policy</button>
+        )}
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
-          <thead><tr><th>Title</th><th>Category</th><th>Version</th><th>Mandatory</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Category</th>
+              <th>Version</th>
+              <th>Mandatory</th>
+              {userRole !== 'Employee' && <th>Actions</th>}
+            </tr>
+          </thead>
           <tbody>
             {policies.map(p => (
               <tr key={p.id}>
@@ -37,7 +51,9 @@ export default function PoliciesPage() {
                 <td><span className={`badge ${p.category === 'Environmental' ? 'badge-green' : p.category === 'Social' ? 'badge-blue' : 'badge-purple'}`}>{p.category}</span></td>
                 <td>v{p.version}</td>
                 <td>{p.mandatory ? <span className="badge badge-red">Required</span> : <span className="badge badge-gray">Optional</span>}</td>
-                <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>Delete</button></td>
+                {userRole !== 'Employee' && (
+                  <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}>Delete</button></td>
+                )}
               </tr>
             ))}
           </tbody>

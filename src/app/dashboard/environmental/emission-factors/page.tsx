@@ -7,8 +7,12 @@ export default function EmissionFactorsPage() {
   const [factors, setFactors] = useState<EF[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState({ activityType: '', factorValue: '', unit: '' });
+  const [userRole, setUserRole] = useState<string>('Employee');
 
-  useEffect(() => { fetch('/api/emission-factors').then(r => r.json()).then(setFactors); }, []);
+  useEffect(() => {
+    fetch('/api/emission-factors').then(r => r.json()).then(setFactors);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
+  }, []);
 
   const handleCreate = async () => {
     const res = await fetch('/api/emission-factors', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
@@ -25,18 +29,29 @@ export default function EmissionFactorsPage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Emission Factors</h1><p className="page-subtitle">CO₂e conversion factors for different activities</p></div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Factor</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-primary" onClick={() => setShowModal(true)}>+ New Factor</button>
+        )}
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
-          <thead><tr><th>Activity Type</th><th>Factor Value</th><th>Unit</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Activity Type</th>
+              <th>Factor Value</th>
+              <th>Unit</th>
+              {userRole !== 'Employee' && <th>Actions</th>}
+            </tr>
+          </thead>
           <tbody>
             {factors.map(f => (
               <tr key={f.id}>
                 <td style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{f.activityType}</td>
                 <td><span style={{ fontWeight: 700, color: 'var(--accent-green)' }}>{f.factorValue}</span> kg CO₂e</td>
                 <td>per {f.unit}</td>
-                <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(f.id)}>Delete</button></td>
+                {userRole !== 'Employee' && (
+                  <td><button className="btn btn-danger btn-sm" onClick={() => handleDelete(f.id)}>Delete</button></td>
+                )}
               </tr>
             ))}
           </tbody>

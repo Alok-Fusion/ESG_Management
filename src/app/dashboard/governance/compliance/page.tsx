@@ -9,10 +9,12 @@ export default function CompliancePage() {
   const [depts, setDepts] = useState<{id:number;name:string}[]>([]);
   const [form, setForm] = useState({ title: '', severity: 'Medium', departmentId: '', ownerId: '', dueDate: '' });
   const [error, setError] = useState('');
+  const [userRole, setUserRole] = useState<string>('Employee');
 
   useEffect(() => {
     fetch('/api/compliance-issues').then(r => r.json()).then(setIssues);
     fetch('/api/departments').then(r => r.json()).then(setDepts);
+    fetch('/api/auth/me').then(r => r.json()).then(d => { if (d.role) setUserRole(d.role); });
   }, []);
 
   const handleCreate = async () => {
@@ -33,11 +35,23 @@ export default function CompliancePage() {
     <div>
       <div className="page-header">
         <div><h1 className="page-title">Compliance Issues</h1><p className="page-subtitle">Track and resolve compliance issues</p></div>
-        <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Issue</button>
+        {userRole !== 'Employee' && (
+          <button className="btn btn-purple" onClick={() => setShowModal(true)}>+ New Issue</button>
+        )}
       </div>
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="data-table">
-          <thead><tr><th>Issue</th><th>Severity</th><th>Department</th><th>Owner</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Issue</th>
+              <th>Severity</th>
+              <th>Department</th>
+              <th>Owner</th>
+              <th>Due Date</th>
+              <th>Status</th>
+              {userRole !== 'Employee' && <th>Actions</th>}
+            </tr>
+          </thead>
           <tbody>
             {issues.map(i => (
               <tr key={i.id}>
@@ -52,9 +66,11 @@ export default function CompliancePage() {
                     {i.isOverdue && <span className="badge badge-red">⚠ OVERDUE</span>}
                   </div>
                 </td>
-                <td>
-                  {i.status === 'Open' && <button className="btn btn-primary btn-sm" onClick={() => handleResolve(i.id)}>Resolve</button>}
-                </td>
+                {userRole !== 'Employee' && (
+                  <td>
+                    {i.status === 'Open' && <button className="btn btn-primary btn-sm" onClick={() => handleResolve(i.id)}>Resolve</button>}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
