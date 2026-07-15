@@ -6,6 +6,12 @@ async function main() {
 
   // Clear existing data
   await prisma.notification.deleteMany();
+  await prisma.pledgeEndorsement.deleteMany();
+  await prisma.sustainabilityPledge.deleteMany();
+  await prisma.greenCheckIn.deleteMany();
+  await prisma.incidentReport.deleteMany();
+  await prisma.carbonFootprintLog.deleteMany();
+  await prisma.sustainabilityTip.deleteMany();
   await prisma.userBadge.deleteMany();
   await prisma.rewardRedemption.deleteMany();
   await prisma.challengeParticipation.deleteMany();
@@ -626,11 +632,107 @@ async function main() {
     data: { userId: admin.id, type: 'compliance_issue', message: 'New compliance issue: Missing MSDS sheets', read: false },
   });
   await prisma.notification.create({
-    data: { userId: aditiRao.id, type: 'badge_unlocked', message: '🏆 Badge unlocked: "Green Beginner"!', read: true },
+    data: { userId: aditiRao.id, type: 'badge_unlocked', message: 'Badge unlocked: Green Beginner!', read: true },
   });
   await prisma.notification.create({
-    data: { userId: karanShah.id, type: 'participation_approved', message: 'Your participation in "ESG Workshop" was approved! +30 points', read: false },
+    data: { userId: karanShah.id, type: 'participation_approved', message: 'Your participation in ESG Workshop was approved! +30 points', read: false },
   });
+
+  // ── Sustainability Tips ──
+  await prisma.sustainabilityTip.createMany({
+    data: [
+      { title: 'Switch to LED Lighting', content: 'Replacing traditional bulbs with LEDs can reduce electricity consumption by up to 80% and last 25 times longer.', category: 'Energy' },
+      { title: 'Reduce Phantom Power', content: 'Unplug chargers and electronics when not in use. Standby power accounts for 5-10% of household electricity use.', category: 'Energy' },
+      { title: 'Choose Reusable Bags', content: 'A single reusable bag can replace up to 700 disposable plastic bags over its lifetime.', category: 'Waste' },
+      { title: 'Opt for Public Transport', content: 'Taking public transit instead of driving alone can reduce your carbon emissions by 45% per trip.', category: 'Transport' },
+      { title: 'Start Composting', content: 'Composting food scraps diverts 30% of waste from landfills and creates nutrient-rich soil for gardens.', category: 'Waste' },
+      { title: 'Go Digital with Documents', content: 'An average office worker uses about 10,000 sheets of paper per year. Going paperless saves trees and reduces waste.', category: 'General' },
+      { title: 'Fix Leaky Faucets', content: 'A dripping faucet can waste over 3,000 gallons of water per year. Regular maintenance saves water and money.', category: 'Water' },
+      { title: 'Plant a Tree', content: 'A single tree can absorb up to 48 pounds of CO2 per year and provide enough oxygen for two people.', category: 'General' },
+      { title: 'Eat Seasonal Produce', content: 'Seasonal, locally-grown food travels fewer miles, reducing transportation emissions by up to 90%.', category: 'Transport' },
+      { title: 'Use Cold Water for Laundry', content: 'Washing clothes in cold water uses 90% less energy than hot water and is just as effective for most loads.', category: 'Energy' },
+    ],
+  });
+
+  // ── Sustainability Pledges ──
+  const pledge1 = await prisma.sustainabilityPledge.create({
+    data: { userId: rIyer.id, pledge: 'I pledge to use public transport for my daily commute for the next 60 days.', durationDays: 60 },
+  });
+  const pledge2 = await prisma.sustainabilityPledge.create({
+    data: { userId: aMehta.id, pledge: 'I pledge to go completely paperless at work for 30 days — no printing!', durationDays: 30 },
+  });
+  await prisma.sustainabilityPledge.create({
+    data: { userId: aditiRao.id, pledge: 'I pledge to bring a reusable water bottle and lunch box every day for 90 days.', durationDays: 90 },
+  });
+  await prisma.sustainabilityPledge.create({
+    data: { userId: admin.id, pledge: 'I pledge to reduce our department electricity usage by 15% within 6 months.', durationDays: 180 },
+  });
+
+  // Endorsements
+  await prisma.pledgeEndorsement.create({ data: { pledgeId: pledge1.id, userId: aMehta.id } });
+  await prisma.pledgeEndorsement.create({ data: { pledgeId: pledge1.id, userId: admin.id } });
+  await prisma.pledgeEndorsement.create({ data: { pledgeId: pledge2.id, userId: rIyer.id } });
+  await prisma.pledgeEndorsement.create({ data: { pledgeId: pledge2.id, userId: aditiRao.id } });
+  await prisma.pledgeEndorsement.create({ data: { pledgeId: pledge2.id, userId: admin.id } });
+
+  // ── Incident Reports ──
+  await prisma.incidentReport.create({
+    data: {
+      title: 'Chemical spill near warehouse B',
+      description: 'Noticed a small chemical leak from a storage container near warehouse B loading dock.',
+      category: 'Environmental',
+      severity: 'High',
+      isAnonymous: false,
+      reporterId: rIyer.id,
+      status: 'Investigating',
+    },
+  });
+  await prisma.incidentReport.create({
+    data: {
+      title: 'Unsafe stacking of materials in Section C',
+      description: 'Heavy materials are being stacked above the recommended height limit, creating a fall hazard.',
+      category: 'Safety',
+      severity: 'Medium',
+      isAnonymous: true,
+      reporterId: null,
+      status: 'Open',
+    },
+  });
+  await prisma.incidentReport.create({
+    data: {
+      title: 'Waste not sorted at cafeteria',
+      description: 'The cafeteria recycling bins have been removed and all waste goes to a single bin.',
+      category: 'Governance',
+      severity: 'Low',
+      isAnonymous: false,
+      reporterId: aMehta.id,
+      status: 'Resolved',
+      resolution: 'Reinstalled segregation bins and posted signage. Cafeteria staff retrained.',
+      resolvedAt: new Date(),
+    },
+  });
+
+  // ── Green Check-Ins ──
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  for (let d = 0; d < 5; d++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - d);
+    const actions = ['Used public transport', 'Brought reusable bottle', 'Went paperless today', 'Ate a plant-based meal', 'Turned off lights when leaving'];
+    const categories = ['Transport', 'Waste', 'Waste', 'Food', 'Energy'];
+    await prisma.greenCheckIn.create({
+      data: { userId: rIyer.id, action: actions[d], category: categories[d], xpEarned: 5, checkDate },
+    }).catch(() => {});
+  }
+  for (let d = 0; d < 3; d++) {
+    const checkDate = new Date(today);
+    checkDate.setDate(checkDate.getDate() - d);
+    const actions = ['Biked or walked to work', 'No single-use plastics today', 'Carpooled with colleagues'];
+    const categories = ['Transport', 'Waste', 'Transport'];
+    await prisma.greenCheckIn.create({
+      data: { userId: aMehta.id, action: actions[d], category: categories[d], xpEarned: 5, checkDate },
+    }).catch(() => {});
+  }
 
   console.log('✅ Seeding complete!');
 }

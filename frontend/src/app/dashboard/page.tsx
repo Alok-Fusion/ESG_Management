@@ -17,10 +17,20 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [insight, setInsight] = useState('');
   const [insightLoading, setInsightLoading] = useState(false);
+  const [tip, setTip] = useState<{ id: number; title: string; content: string; category: string; helpfulCount: number } | null>(null);
+  const [tipMarked, setTipMarked] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard').then(r => r.json()).then(setData).catch(console.error);
+    fetch('/api/tips/today').then(r => r.json()).then(t => { if (t) setTip(t); }).catch(() => {});
   }, []);
+
+  const markHelpful = async () => {
+    if (!tip || tipMarked) return;
+    setTipMarked(true);
+    await fetch(`/api/tips/${tip.id}/helpful`, { method: 'POST' }).catch(() => {});
+    setTip(prev => prev ? { ...prev, helpfulCount: prev.helpfulCount + 1 } : prev);
+  };
 
   const generateInsight = async () => {
     setInsightLoading(true);
@@ -94,6 +104,44 @@ export default function DashboardPage() {
           <div className="kpi-value">{kpis.overall}<span className="unit">/100</span></div>
         </div>
       </div>
+
+      {/* Tip of the Day */}
+      {tip && (
+        <div style={{
+          padding: '18px 24px',
+          borderRadius: '14px',
+          background: 'linear-gradient(135deg, #22c55e12, #3b82f612)',
+          border: '1px solid var(--border-default)',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '18px',
+        }}>
+          <div style={{
+            width: '42px', height: '42px', borderRadius: '12px',
+            background: 'linear-gradient(135deg, var(--accent-green), var(--accent-blue))',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '20px', flexShrink: 0,
+          }}>
+            💡
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent-green)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              Tip of the Day · {tip.category}
+            </div>
+            <div style={{ fontSize: '14px', fontWeight: 600, marginTop: '2px' }}>{tip.title}</div>
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>{tip.content}</div>
+          </div>
+          <button
+            className={`btn ${tipMarked ? 'btn-primary' : 'btn-secondary'}`}
+            style={{ fontSize: '11px', padding: '5px 14px', whiteSpace: 'nowrap' }}
+            onClick={markHelpful}
+            disabled={tipMarked}
+          >
+            {tipMarked ? `Helpful (${tip.helpfulCount})` : `Helpful (${tip.helpfulCount})`}
+          </button>
+        </div>
+      )}
 
       {/* AI Insight */}
       <div className="insight-card">

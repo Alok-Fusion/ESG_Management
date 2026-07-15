@@ -29,6 +29,11 @@ model User {
   conductedAudits         Audit[]                 @relation("AuditAuditor")
   notifications           Notification[]
   headOfDepartments       Department[]            @relation("DepartmentHead")
+  carbonFootprintLogs     CarbonFootprintLog[]
+  incidentReports         IncidentReport[]        @relation("IncidentReporter")
+  greenCheckIns           GreenCheckIn[]
+  pledges                 SustainabilityPledge[]
+  pledgeEndorsements      PledgeEndorsement[]     @relation("PledgeEndorser")
 }
 
 model Department {
@@ -284,3 +289,77 @@ model ESGConfig {
   key   String @unique
   value String
 }
+
+// ── Unique Feature Models ──
+
+model CarbonFootprintLog {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  user            User     @relation(fields: [userId], references: [id])
+  commuteMode     String   // car | bus | bike | walk | wfh
+  commuteKm       Float    @default(0)
+  electricityKwh  Float    @default(0)
+  mealType        String   // vegan | vegetarian | mixed | meat_heavy
+  totalCO2Kg      Float    @default(0)
+  logDate         DateTime @default(now())
+}
+
+model IncidentReport {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String
+  category     String   // Environmental | Safety | Governance | Ethics
+  severity     String   // Low | Medium | High | Critical
+  isAnonymous  Boolean  @default(false)
+  reporterId   Int?
+  reporter     User?    @relation("IncidentReporter", fields: [reporterId], references: [id])
+  status       String   @default("Open") // Open | Investigating | Resolved | Dismissed
+  resolution   String   @default("")
+  createdAt    DateTime @default(now())
+  resolvedAt   DateTime?
+}
+
+model GreenCheckIn {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  action    String   // e.g. "Used public transport", "Brought reusable bottle"
+  category  String   @default("General") // Transport | Energy | Waste | Food | General
+  xpEarned  Int      @default(5)
+  checkDate DateTime @default(now())
+
+  @@unique([userId, checkDate])
+}
+
+model SustainabilityPledge {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  user         User     @relation(fields: [userId], references: [id])
+  pledge       String
+  durationDays Int      @default(30)
+  status       String   @default("Active") // Active | Completed | Abandoned
+  createdAt    DateTime @default(now())
+
+  endorsements PledgeEndorsement[]
+}
+
+model PledgeEndorsement {
+  id        Int      @id @default(autoincrement())
+  pledgeId  Int
+  pledge    SustainabilityPledge @relation(fields: [pledgeId], references: [id])
+  userId    Int
+  user      User     @relation("PledgeEndorser", fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([pledgeId, userId])
+}
+
+model SustainabilityTip {
+  id          Int      @id @default(autoincrement())
+  title       String
+  content     String
+  category    String   // Energy | Transport | Waste | Water | General
+  helpfulCount Int     @default(0)
+  createdAt   DateTime @default(now())
+}
+

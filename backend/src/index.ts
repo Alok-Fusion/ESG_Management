@@ -12,6 +12,11 @@ import environmentalRouter from './routes/environmental';
 import governanceRouter from './routes/governance';
 import analyticsRouter from './routes/analytics';
 import settingsRouter from './routes/settings';
+import carbonCalculatorRouter from './routes/carbon-calculator';
+import incidentsRouter from './routes/incidents';
+import streaksRouter from './routes/streaks';
+import pledgesRouter from './routes/pledges';
+import tipsRouter from './routes/tips';
 
 dotenv.config();
 
@@ -34,6 +39,11 @@ app.use('/api', environmentalRouter);
 app.use('/api', governanceRouter);
 app.use('/api', analyticsRouter);
 app.use('/api', settingsRouter);
+app.use('/api/carbon-calculator', carbonCalculatorRouter);
+app.use('/api/incidents', incidentsRouter);
+app.use('/api/streaks', streaksRouter);
+app.use('/api/pledges', pledgesRouter);
+app.use('/api/tips', tipsRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 EcoSphere API Server running on port ${PORT}`);

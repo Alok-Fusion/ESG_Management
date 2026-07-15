@@ -30,6 +30,10 @@ import {
   Leaf,
   ChevronRight,
   ChevronDown,
+  Calculator,
+  Flame,
+  Megaphone,
+  Flag,
 } from 'lucide-react';
 
 const ICON_SIZE = 16;
@@ -55,6 +59,10 @@ const iconMap: Record<string, ReactNode> = {
   'Leaderboard':            <Trophy size={ICON_SIZE} />,
   'Reports':                <BarChart3 size={ICON_SIZE} />,
   'Settings':               <Settings size={ICON_SIZE} />,
+  'Carbon Calculator':      <Calculator size={ICON_SIZE} />,
+  'Incident Reporting':     <Megaphone size={ICON_SIZE} />,
+  'Green Streaks':          <Flame size={ICON_SIZE} />,
+  'Pledge Wall':            <Flag size={ICON_SIZE} />,
 };
 
 const sectionIconMap: Record<string, ReactNode> = {
@@ -82,6 +90,7 @@ const navSections = [
       { label: 'Product ESG Profiles', href: '/dashboard/environmental/product-profiles', module: 'environmental' },
       { label: 'Carbon Transactions', href: '/dashboard/environmental/carbon-transactions', module: 'environmental' },
       { label: 'Environmental Goals', href: '/dashboard/environmental/goals', module: 'environmental' },
+      { label: 'Carbon Calculator', href: '/dashboard/environmental/carbon-calculator', module: 'environmental' },
     ],
   },
   {
@@ -91,6 +100,7 @@ const navSections = [
       { label: 'CSR Activities', href: '/dashboard/social/csr-activities', module: 'social' },
       { label: 'Employee Participation', href: '/dashboard/social/participation', module: 'social' },
       { label: 'Diversity Dashboard', href: '/dashboard/social/diversity', module: 'social' },
+      { label: 'Pledge Wall', href: '/dashboard/social/pledge-wall', module: 'social' },
     ],
   },
   {
@@ -101,6 +111,7 @@ const navSections = [
       { label: 'Policy Acknowledgements', href: '/dashboard/governance/acknowledgements', module: 'governance' },
       { label: 'Audits', href: '/dashboard/governance/audits', module: 'governance' },
       { label: 'Compliance Issues', href: '/dashboard/governance/compliance', module: 'governance' },
+      { label: 'Incident Reporting', href: '/dashboard/governance/incidents', module: 'governance' },
     ],
   },
   {
@@ -112,6 +123,7 @@ const navSections = [
       { label: 'Badges', href: '/dashboard/gamification/badges', module: 'gamification' },
       { label: 'Rewards', href: '/dashboard/gamification/rewards', module: 'gamification' },
       { label: 'Leaderboard', href: '/dashboard/gamification/leaderboard', module: 'gamification' },
+      { label: 'Green Streaks', href: '/dashboard/gamification/streaks', module: 'gamification' },
     ],
   },
   {
